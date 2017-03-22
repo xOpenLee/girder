@@ -19,12 +19,10 @@
 
 import cherrypy
 import datetime
-import six
 
-from .model_base import Model, ValidationException
+from .model_base import Model, ValidationException, GirderException
 from girder import events
 from girder.constants import AccessType, CoreEventHandler
-from girder.models.model_base import AccessControlledModel
 from girder.utility import assetstore_utilities, acl_mixin
 
 
@@ -326,26 +324,17 @@ class File(acl_mixin.AccessControlMixin, Model):
         :param file: The file to check.
         :type file: dict
         """
-        if file.get('attachedToId'):
-            attachedToType = file.get('attachedToType')
-            if isinstance(attachedToType, six.string_types):
-                modelType = self.model(attachedToType)
-            elif isinstance(attachedToType, list) and len(attachedToType) == 2:
-                modelType = self.model(*attachedToType)
-            else:
-                # Invalid 'attachedToType'
-                return True
-            if isinstance(modelType, (acl_mixin.AccessControlMixin,
-                                      AccessControlledModel)):
-                attachedDoc = modelType.load(
-                    file.get('attachedToId'), force=True)
-            else:
-                attachedDoc = modelType.load(
-                    file.get('attachedToId'))
-        else:
-            attachedDoc = self.model('item').load(
-                file.get('itemId'), force=True)
-        return not attachedDoc
+        try:
+            resourceModel, resourceId = self._resourceModelandId(file)
+        except GirderException:
+            # Invalid 'attachedToType'
+            return True
+        try:
+            self._loadResource(resourceModel, resourceId, force=True, fields=[])
+        except ValidationException:
+            # Resource does not exist
+            return True
+        return False
 
     def updateSize(self, file):
         """
