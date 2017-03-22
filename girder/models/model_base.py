@@ -1209,7 +1209,6 @@ class AccessControlledModel(Model):
         :raises ValidationException: If an invalid ObjectId is passed.
         :returns: The matching document, or None if no match exists.
         """
-
         # Ensure we include access and public, they are needed by requireAccess
         loadFields = copy.copy(fields)
         if not force and self._isInclusionProjection(fields):
@@ -1225,10 +1224,10 @@ class AccessControlledModel(Model):
             self.requireAccess(doc, user, level)
 
             if fields is not None:
-                if 'access' not in fields:
+                if 'access' not in fields and 'access' in doc:
                     del doc['access']
 
-                if 'public' not in fields:
+                if 'public' not in fields and 'public' in doc:
                     del doc['public']
 
         return doc
