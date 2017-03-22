@@ -1162,12 +1162,9 @@ class AccessControlledModel(Model):
                 perm = 'Admin'
             else:
                 perm = 'Unknown level'
-            if user:
-                userid = str(user.get('_id', ''))
-            else:
-                userid = None
+            userId = str(user.get('_id', '')) if user else None
             raise AccessException('%s access denied for %s %s (user %s).' %
-                                  (perm, self.name, doc.get('_id', 'unknown'), userid))
+                                  (perm, self.name, doc.get('_id', 'unknown'), userId))
 
     def requireAccessFlags(self, doc, user=None, flags=None):
         """
@@ -1175,13 +1172,9 @@ class AccessControlledModel(Model):
         a flag access check fails.
         """
         if not self.hasAccessFlags(doc, user, flags):
-            if user:
-                uid = str(user.get('_id', ''))
-            else:
-                uid = None
-
+            userId = str(user.get('_id', '')) if user else None
             raise AccessException('Access denied for %s %s (user %s).' %
-                                  (self.name, doc.get('_id', 'unknown'), uid))
+                                  (self.name, doc.get('_id', 'unknown'), userId))
 
     def load(self, id, level=AccessType.ADMIN, user=None, objectId=True,
              force=False, fields=None, exc=False):

@@ -20,7 +20,7 @@
 import itertools
 import six
 
-from ..models.model_base import Model, AccessException, GirderException
+from ..models.model_base import Model, AccessControlledModel, AccessException, GirderException
 from ..constants import AccessType
 
 
@@ -80,6 +80,10 @@ class AccessControlMixin(object):
     The "model type identifier" is typically a string with the name of the resource model, exactly
     as passed to `ModelImporter.model`. To reference resource models from plugins, the "model type
     identifier" may also be a list of two strings, for example: ['model_name', 'plugin_name'].
+
+    Finally, note that if the "resource" model is non-AccessControlled (i.e. not a subclass of
+    `AccessControlMixin` or `AccessControlledModel`), then full access (including admin) is granted
+    to the referencing AccessControlMixin object.
     """
     resourceColl = None
     resourceParent = None
@@ -112,6 +116,32 @@ class AccessControlMixin(object):
 
         return resourceModel, resourceId
 
+    def _isAccessControlled(self, model):
+        return isinstance(model, (AccessControlMixin, AccessControlledModel))
+
+    def _loadResource(self, resourceModel, resourceId, force=False, level=None, user=None,
+                      fields=None):
+        """
+        This calls the appropriate "load" method for resources of any base type.
+
+        Some AccessControlMixin objects (particularly File) may be attached to a plain Model
+        subclass resource type.
+        """
+        args = {}
+        if self._isAccessControlled(resourceModel):
+            if force is not None:
+                args['force'] = force
+            if level is not None:
+                args['level'] = level
+            if user is not None:
+                args['user'] = user
+            if fields is not None:
+                args['fields'] = fields
+
+        # "exc=True" is crucial, so a missing resource doesn't silently allow access or cause
+        # later code to assume the resource is a dict
+        resource = resourceModel.load(resourceId, exc=True, **args)
+        return resource
 
     def load(self, id, level=AccessType.ADMIN, user=None, objectId=True, force=False, fields=None,
              exc=False):
@@ -126,8 +156,7 @@ class AccessControlMixin(object):
         if not force and doc is not None:
             resourceModel, resourceId = self._resourceModelandId(doc)
             # Exclude all fields, as no data is actually required from the resource
-            # "exc=True" is crucial, so a missing resource doesn't allow access
-            resourceModel.load(resourceId, fields=[], level=level, user=user, exc=True)
+            self._loadResource(resourceModel, resourceId, level=level, user=user, fields=[])
 
         return doc
 
@@ -139,9 +168,13 @@ class AccessControlMixin(object):
         :py:func:`girder.models.model_base.AccessControlledModel.hasAccess`.
         """
         resourceModel, resourceId = self._resourceModelandId(doc)
-        resource = resourceModel.load(resourceId, fields=['public', 'access'], force=True)
-
-        return resourceModel.hasAccess(resource, user=user, level=level)
+        if self._isAccessControlled(resourceModel):
+            resource = self._loadResource(
+                resourceModel, resourceId, force=True, fields=['public', 'access'])
+            return resourceModel.hasAccess(resource, user=user, level=level)
+        else:
+            # Non-access controlled resources always allow access
+            return True
 
     def hasAccessFlags(self, doc, user=None, flags=None):
         """
@@ -151,9 +184,13 @@ class AccessControlMixin(object):
             return True
 
         resourceModel, resourceId = self._resourceModelandId(doc)
-        resource = resourceModel.load(resourceId, fields=['publicFlags', 'access'], force=True)
-
-        return resourceModel.hasAccessFlags(resource, user, flags)
+        if self._isAccessControlled(resourceModel):
+            resource = self._loadResource(
+                resourceModel, resourceId, force=True, fields=['publicFlags', 'access'])
+            return resourceModel.hasAccessFlags(resource, user, flags)
+        else:
+            # Non-access controlled resources can never have flags
+            return False
 
     def requireAccess(self, doc, user=None, level=AccessType.READ):
         """
@@ -184,9 +221,15 @@ class AccessControlMixin(object):
             return
 
         resourceModel, resourceId = self._resourceModelandId(doc)
-        resource = resourceModel.load(resourceId, fields=['publicFlags', 'access'], force=True)
+        if self._isAccessControlled(resourceModel):
+            resource = self._loadResource(
+                resourceModel, resourceId, force=True, fields=['publicFlags', 'access'])
+            return resourceModel.requireAccessFlags(resource, user, flags)
+        else:
+            userId = str(user.get('_id', '')) if user else None
+            raise AccessException('Access denied for %s %s (user %s).' %
+                                  (self.name, doc.get('_id', 'unknown'), userId))
 
-        return resourceModel.requireAccessFlags(resource, user, flags)
 
     def filterResultsByPermission(self, cursor, user, level, limit=0, offset=0, removeKeys=(),
                                   flags=None):
@@ -219,12 +262,17 @@ class AccessControlMixin(object):
             loadFields = ['public', 'access']
             if flags:
                 loadFields.append('publicFlags')
-            resource = resourceModel.load(resourceId, fields=loadFields, force=True)
+            resource = self._loadResource(resourceModel, resourceId, force=True, fields=loadFields)
 
-            resourceAccess = resourceModel.hasAccess(resource, user=user, level=level)
-            if flags:
-                resourceAccess = resourceAccess and resourceModel.hasAccessFlags(
-                    resource, user=user, flags=flags)
+            if self._isAccessControlled(resourceModel):
+                resourceAccess = resourceModel.hasAccess(resource, user=user, level=level)
+                if flags:
+                    resourceAccess = resourceAccess and resourceModel.hasAccessFlags(
+                        resource, user=user, flags=flags)
+            else:
+                resourceAccess = True
+                if flags:
+                    resourceAccess = False
 
             resourceAccessCache[cacheKey] = resourceAccess
             return resourceAccess
