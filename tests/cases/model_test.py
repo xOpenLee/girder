@@ -228,6 +228,17 @@ class ModelTestCase(base.TestCase):
             AccessException, self.model(modelType, modelPlugin).load,
             instanceId, user=user, level=AccessType.ADMIN)
 
+    def _assertPublicAccess(self, instanceId, user, modelType, modelPlugin=None):
+        self.assertRaises(AccessException, self.model(modelType, modelPlugin).load, instanceId)
+        self.assertIsNotNone(self.model(modelType, modelPlugin).load(
+            instanceId, level=AccessType.READ))
+        self.assertIsNotNone(self.model(modelType, modelPlugin).load(instanceId, force=True))
+        self.assertIsNotNone(self.model(modelType, modelPlugin).load(
+            instanceId, user=user, level=AccessType.READ))
+        self.assertRaises(
+            AccessException, self.model(modelType, modelPlugin).load,
+            instanceId, user=user, level=AccessType.ADMIN)
+
     def testAccessControlMixin(self):
         users = ({
              'email': 'good@email.com',
@@ -272,9 +283,39 @@ class ModelTestCase(base.TestCase):
         self._assertWriteAccess(
             parentPluginInstance['_id'], regUser, 'fake_ac_plugin_model', 'has_model')
 
-        # Set up an attached model, referencing a plugin model, and check access
+        # Set up an attached model, resourcing a plugin model, and check access
         attachedInstance2 = self.model('fake_attached').save({
             'attachedToId': parentPluginInstance['_id'],
             'attachedToType': ['fake_ac_plugin_model', 'has_model']})
         self.assertHasKeys(attachedInstance2, ['_id', 'attachedToId', 'attachedToType'])
         self._assertWriteAccess(attachedInstance2['_id'], regUser, 'fake_attached')
+
+        # Set up a non-AccessControlled parent model
+        parentBasicInstance = self.model('fake').save({})
+        self.assertHasKeys(parentBasicInstance, ['_id'])
+
+        # Set up an attached model, resourcing a non-AccessControlled model, and check access
+        attachedInstance3 = self.model('fake_attached').save({
+            'attachedToId': parentBasicInstance['_id'],
+            'attachedToType': 'fake'})
+        self.assertHasKeys(attachedInstance3, ['_id', 'attachedToId', 'attachedToType'])
+        # Everything should be allowed
+        self.assertIsNotNone(self.model('fake_attached').load(attachedInstance3['_id']))
+        self.assertIsNotNone(self.model('fake_attached').load(
+            attachedInstance3['_id'], level=AccessType.READ))
+        self.assertIsNotNone(self.model('fake_attached').load(attachedInstance3['_id'], force=True))
+        self.assertIsNotNone(self.model('fake_attached').load(
+            attachedInstance3['_id'], user=user, level=AccessType.READ))
+        self.assertIsNotNone(self.model('fake_attached').load(
+            attachedInstance3['_id'], user=user, level=AccessType.ADMIN))
+
+        # Ensure that making access controlled parent public also makes resourcing models public
+        parentInstance = self.model('fake_ac').setPublic(parentInstance, True, save=True)
+        self._assertPublicAccess(parentInstance['_id'], regUser, 'fake_ac')
+        self._assertPublicAccess(dependentInstance['_id'], regUser, 'fake_ac_mixin')
+        self._assertPublicAccess(attachedInstance1['_id'], regUser, 'fake_attached')
+        parentPluginInstance = self.model('fake_ac_plugin_model', 'has_model').setPublic(
+            parentPluginInstance, True, save=True)
+        self._assertPublicAccess(
+            parentPluginInstance['_id'], regUser, 'fake_ac_plugin_model', 'has_model')
+        self._assertPublicAccess(attachedInstance2['_id'], regUser, 'fake_attached')
