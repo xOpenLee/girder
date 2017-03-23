@@ -135,8 +135,8 @@ class AccessControlMixin(object):
                 args['level'] = level
             if user is not None:
                 args['user'] = user
-            if fields is not None:
-                args['fields'] = fields
+        if fields is not None:
+            args['fields'] = fields
 
         # "exc=True" is crucial, so a missing resource doesn't silently allow access or cause
         # later code to assume the resource is a dict
@@ -152,11 +152,19 @@ class AccessControlMixin(object):
         Takes the same parameters as
         :py:func:`girder.models.model_base.AccessControlledModel.load`.
         """
-        doc = Model.load(self, id=id, objectId=objectId, fields=fields, exc=exc)
+        extraFields = {'attachedToId', 'attachedToType'}
+        if self.resourceParent:
+            extraFields.add(self.resourceParent)
+        loadFields = Model._loadFields(self, fields, extraFields) if not force else fields
+
+        doc = Model.load(self, id=id, objectId=objectId, fields=loadFields, exc=exc)
+
         if not force and doc is not None:
             resourceModel, resourceId = self._resourceModelandId(doc)
             # Exclude all fields, as no data is actually required from the resource
             self._loadResource(resourceModel, resourceId, level=level, user=user, fields=[])
+
+            doc = Model._cleanFields(self, doc, fields, extraFields)
 
         return doc
 

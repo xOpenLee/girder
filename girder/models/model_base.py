@@ -576,6 +576,61 @@ class Model(ModelImporter):
         # Empty dict or just _id field
         return fields.get('_id', True)
 
+    def _loadFields(self, baseFields, extraFields):
+        """
+        Add extra fields to a projection filter.
+
+        :param baseFields: The original projection filter.
+        :type baseFields: list or dict or None
+        :param extraFields: Extra fields.
+        :type extraFields: set
+        :type: A new inclusion filter.
+        :rtype: list
+        """
+        if not isinstance(extraFields, set):
+            extraFields = set(extraFields)
+        if self._isInclusionProjection(baseFields):
+            if isinstance(baseFields, dict):
+                loadFields = copy.copy(baseFields)
+                for extraField in extraFields:
+                    loadFields[extraField] = True
+            else:
+                loadFields = list(set(baseFields) | extraFields)
+        else:
+            loadFields = baseFields
+            # TODO: handle this case
+        return loadFields
+
+    def _cleanFields(self, doc, baseFields, extraFields):
+        """
+        Remove extra fields from a document, leaving only the fields requested by a projection
+        filter.
+
+        :param doc: A Model document.
+        :type doc: dict
+        :param baseFields: The original projection filter.
+        :type baseFields: list or dict or None
+        :param extraFields: Extra fields.
+        :type extraFields: set
+        :return: The passed "doc".
+        :rtype: dict
+        """
+        if not isinstance(extraFields, set):
+            extraFields = set(extraFields)
+        if self._isInclusionProjection(baseFields):
+            if isinstance(baseFields, dict):
+                removeFields = set(extraField for extraField in extraFields
+                                   if not baseFields.get(extraField))
+            else:
+                removeFields = extraFields - set(baseFields)
+            for removeField in removeFields:
+                if removeField in doc:
+                    del doc[removeField]
+        else:
+            # TODO
+            pass
+
+        return doc
 
 class AccessControlledModel(Model):
     """
@@ -1203,25 +1258,15 @@ class AccessControlledModel(Model):
         :returns: The matching document, or None if no match exists.
         """
         # Ensure we include access and public, they are needed by requireAccess
-        loadFields = copy.copy(fields)
-        if not force and self._isInclusionProjection(fields):
-            if isinstance(loadFields, dict):
-                loadFields['access'] = True
-                loadFields['public'] = True
-            else:
-                loadFields = list(set(loadFields) | {'access', 'public'})
+        extraFields = {'access', 'public'}
+        loadFields = self._loadFields(fields, extraFields) if not force else fields
 
         doc = Model.load(self, id=id, objectId=objectId, fields=loadFields, exc=exc)
 
         if not force and doc is not None:
             self.requireAccess(doc, user, level)
 
-            if fields is not None:
-                if 'access' not in fields and 'access' in doc:
-                    del doc['access']
-
-                if 'public' not in fields and 'public' in doc:
-                    del doc['public']
+            doc = self._cleanFields(doc, fields, extraFields)
 
         return doc
 
