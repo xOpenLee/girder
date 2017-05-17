@@ -24,6 +24,7 @@
 !oauth/
 !provenance/
 !thumbnails/
+!treeview/
 !user_quota/
 !vega/
 !worker/
