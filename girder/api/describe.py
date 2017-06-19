@@ -24,13 +24,14 @@ try:
 except ImportError:
     from funcsigs import signature, Parameter
 import jsonschema
+import mako
 import os
 import six
 import cherrypy
 
-from girder import constants, events, logprint
+from girder import constants, logprint
 from girder.api.rest import getCurrentUser, RestException, getBodyJson
-from girder.constants import CoreEventHandler, SettingKey
+from girder.constants import SettingKey
 from girder.utility import config, toBool
 from girder.utility.model_importer import ModelImporter
 from girder.utility.webroot import WebrootBase
@@ -448,25 +449,15 @@ class ApiDocs(WebrootBase):
         self.vars = {
             'apiRoot': '',
             'staticRoot': '',
-            'brandName': ModelImporter.model('setting').get(SettingKey.BRAND_NAME),
             'mode': mode
         }
 
-        events.bind('model.setting.save.after', CoreEventHandler.WEBROOT_SETTING_CHANGE,
-                    self._onSettingSave)
-        events.bind('model.setting.remove', CoreEventHandler.WEBROOT_SETTING_CHANGE,
-                    self._onSettingRemove)
-
-    def _onSettingSave(self, event):
-        settingDoc = event.info
-        if settingDoc['key'] == SettingKey.BRAND_NAME:
-            self.updateHtmlVars({'brandName': settingDoc['value']})
-
-    def _onSettingRemove(self, event):
-        settingDoc = event.info
-        if settingDoc['key'] == SettingKey.BRAND_NAME:
-            self.updateHtmlVars({'brandName': ModelImporter.model('setting').getDefault(
-                SettingKey.BRAND_NAME)})
+    def _renderHTML(self):
+        from girder.utility import server
+        self.vars['apiRoot'] = server.getApiRoot()
+        self.vars['staticRoot'] = server.getApiStaticRoot()
+        self.vars['brandName'] = ModelImporter.model('setting').get(SettingKey.BRAND_NAME)
+        return mako.template.Template(self.template).render(**self.vars)
 
 
 class Describe(Resource):

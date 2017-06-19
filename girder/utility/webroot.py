@@ -23,8 +23,8 @@ import re
 import cherrypy
 import mako
 
-from girder import constants, events
-from girder.constants import CoreEventHandler, SettingKey
+from girder import constants
+from girder.constants import SettingKey
 from girder.utility import config
 from girder.utility.model_importer import ModelImporter
 
@@ -72,10 +72,7 @@ class WebrootBase(object):
         return mako.template.Template(self.template).render(js=self._escapeJavascript, **self.vars)
 
     def GET(self, **params):
-        if self.indexHtml is None or self.config['server']['mode'] == 'development':
-            self.indexHtml = self._renderHTML()
-
-        return self.indexHtml
+        return self._renderHTML()
 
     def DELETE(self, **params):
         raise cherrypy.HTTPError(405)
@@ -101,45 +98,26 @@ class Webroot(WebrootBase):
         super(Webroot, self).__init__(templatePath)
 
         self.vars = {
-            'plugins': [],
-            'apiRoot': '',
-            'staticRoot': '',
-            # 'title' is depreciated use brandName instead
-            'title': 'Girder',
-            'brandName': ModelImporter.model('setting').get(SettingKey.BRAND_NAME),
-            'contactEmail': ModelImporter.model('setting').get(SettingKey.CONTACT_EMAIL_ADDRESS)
+            # 'title' is deprecated use brandName instead
+            'title': 'Girder'
         }
 
-        events.bind('model.setting.save.after', CoreEventHandler.WEBROOT_SETTING_CHANGE,
-                    self._onSettingSave)
-        events.bind('model.setting.remove', CoreEventHandler.WEBROOT_SETTING_CHANGE,
-                    self._onSettingRemove)
-
-    def _onSettingSave(self, event):
-        settingDoc = event.info
-        if settingDoc['key'] == SettingKey.CONTACT_EMAIL_ADDRESS:
-            self.updateHtmlVars({'contactEmail': settingDoc['value']})
-        elif settingDoc['key'] == SettingKey.BRAND_NAME:
-            self.updateHtmlVars({'brandName': settingDoc['value']})
-
-    def _onSettingRemove(self, event):
-        settingDoc = event.info
-        if settingDoc['key'] == SettingKey.CONTACT_EMAIL_ADDRESS:
-            self.updateHtmlVars({'contactEmail': ModelImporter.model('setting').getDefault(
-                SettingKey.CONTACT_EMAIL_ADDRESS)})
-        elif settingDoc['key'] == SettingKey.BRAND_NAME:
-            self.updateHtmlVars({'brandName': ModelImporter.model('setting').getDefault(
-                SettingKey.BRAND_NAME)})
-
     def _renderHTML(self):
+        from girder.utility import server
         self.vars['pluginCss'] = []
         self.vars['pluginJs'] = []
         builtDir = os.path.join(constants.STATIC_ROOT_DIR, 'clients', 'web',
                                 'static', 'built', 'plugins')
-        for plugin in self.vars['plugins']:
+        for plugin in server.getPlugins():
             if os.path.exists(os.path.join(builtDir, plugin, 'plugin.min.css')):
                 self.vars['pluginCss'].append(plugin)
             if os.path.exists(os.path.join(builtDir, plugin, 'plugin.min.js')):
                 self.vars['pluginJs'].append(plugin)
+
+        self.vars['apiRoot'] = server.getApiRoot()
+        self.vars['staticRoot'] = server.getStaticRoot()
+        self.vars['brandName'] = ModelImporter.model('setting').get(SettingKey.BRAND_NAME)
+        self.vars['contactEmail'] = ModelImporter.model('setting').get(
+            SettingKey.CONTACT_EMAIL_ADDRESS)
 
         return super(Webroot, self)._renderHTML()
