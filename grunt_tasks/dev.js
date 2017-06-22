@@ -66,15 +66,15 @@ module.exports = function (grunt) {
         });
         fs.writeFileSync('clients/web/static/built/testing/testEnv.html', fn({
             cssFiles: [
+                '/static/built/testing.min.css',
                 '/static/built/fontello/css/fontello.css',
                 '/static/built/girder_lib.min.css',
-                '/static/built/girder_app.min.css',
-                '/static/built/testing.min.css'
+                '/static/built/girder_app.min.css'
             ],
             jsFiles: [
+                '/static/built/testing/testing.min.js',
                 '/static/built/girder_lib.min.js',
-                '/static/built/girder_app.min.js',
-                '/static/built/testing/testing.min.js'
+                '/static/built/girder_app.min.js'
             ],
             staticRoot: '/static',
             apiRoot: '/api/v1'
