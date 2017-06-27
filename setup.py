@@ -63,6 +63,7 @@ install_reqs = [
     'boto3',
     'CherryPy',
     'click',
+    'dogpile.cache',
     'filelock',
     'jsonschema',
     'Mako',

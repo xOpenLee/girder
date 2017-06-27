@@ -28,6 +28,7 @@ import traceback
 
 from girder.constants import LOG_ROOT, MAX_LOG_SIZE, LOG_BACKUP_COUNT, TerminalColor, VERSION
 from girder.utility import config, mkdir
+from girder.utility.cache import cache, requestCache
 
 __version__ = '2.3.0'
 __license__ = 'Apache 2.0'
@@ -258,6 +259,26 @@ def logprint(*args, **kwargs):
         _originalStdOut.write('%s\n' % data)
         _originalStdOut.flush()
 
+
+def _setupCache():
+    """
+    Setup caching based on configuration file.
+
+    If the cache is disabled, both the global and per-request cache are set
+    to the null backend, effectively making them a noop. This allows for
+    decorating functions with the cache region, despite it being unused.
+    """
+    curConfig = config.getConfig()
+
+    if not curConfig['cache']['enabled']:
+        cache.configure(backend='dogpile.cache.null')
+        requestCache.configure(backend='dogpile.cache.null')
+    else:
+        cache.configure_from_config(curConfig['cache'], 'cache.global.')
+        requestCache.configure_from_config(curConfig['cache'], 'cache.request.')
+
+
+_setupCache()
 
 # Expose common logging levels and colors as methods of logprint.
 logprint.info = functools.partial(logprint, level=logging.INFO, color='info')
