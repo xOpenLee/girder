@@ -11,6 +11,7 @@ from girder.plugins.worker import utils
 from . import constants
 from .json_tasks import createItemTasksFromJson, runJsonTasksDescriptionForFolder
 from .slicer_cli_tasks import configureItemTaskFromSlicerCliXml, runSlicerCliTasksDescriptionForItem
+from .python_tasks import runGirderWorkerTask
 
 
 class ItemTask(Resource):
@@ -187,6 +188,10 @@ class ItemTask(Resource):
         if jobTitle is None:
             jobTitle = item['name']
         task, handler = self._validateTask(item)
+
+        if task.get('mode') == 'girder_worker':
+            runGirderWorkerTask(item['meta']['itemTaskImport'], inputs)
+            return
 
         jobModel = self.model('job', 'jobs')
         job = jobModel.createJob(
