@@ -48,9 +48,12 @@
 
     - name: Install Girder Python development requirements
       pip:
-        requirements: "requirements-dev.txt"
+        requirements: "{{ item }}"
         chdir: "{{ girder_path }}"
         virtualenv: "{{ girder_virtualenv }}"
+      with_items:
+        - "requirements-dev.txt"
+        - "clients/python/requirements.txt"
 
     - name: Install development packages
       apt:
