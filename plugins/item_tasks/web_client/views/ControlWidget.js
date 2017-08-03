@@ -180,102 +180,13 @@ var ControlWidget = View.extend({
      * input element.
      */
     _selectFile: function () {
-        var showItems = false,
-            input = false,
-            preview = true,
-            validate = _.noop,
-            type = this.model.get('type'),
-            title, help;
-
-        // Customize the browser widget according the argument type
-        if (type === 'item' || type === 'file' || type === 'image') {
-            showItems = true;
-            title = 'Select an item';
-            help = 'Click on an item to select it, then click "Save"';
-
-            var modal = new ItemSelectorWidget({
-                el: $('#g-dialog-container'),
-                parentView: this,
-                model: this.model
-            });
-            modal.once('g:saved', () => {
-                modal.$el.modal('hide');
-            }).render();
-            return;
-        }
-
-        if (type === 'directory') {
-            title = 'Select a folder';
-            help = 'Browse to a directory to select it, then click "Save"';
-        }
-
-        if (type === 'new-folder') {
-            title = 'Create a new folder';
-            help = 'Browse to a path, enter a name, then click "Save"';
-            input = {
-                label: 'Name',
-                placeholder: 'Choose a name for the new folder',
-                validate: (val) => {
-                    // validation on the "new item name"
-                    if (!val) {
-                        return 'Please provide a folder name.';
-                    }
-                },
-                default: this.model.get('fileName')
-            };
-            // validation on the parent model
-            validate = (model) => {
-                var type = model.get('_modelType');
-                if (!_.contains(['folder', 'collection', 'user'], type)) {
-                    return 'Invalid parent type, please choose a collection, folder, or user.';
-                }
-            };
-            preview = false;
-        }
-
-        if (type === 'new-file') {
-            title = 'Create a new item';
-            help = 'Browse to a path, enter a name, then click "Save"';
-            input = {
-                label: 'Name',
-                placeholder: 'Choose a name for the new item',
-                validate: (val) => {
-                    // validation on the "new folder name"
-                    if (!val) {
-                        return 'Please provide an item name.';
-                    }
-                },
-                default: this.model.get('fileName')
-            };
-            // validation on the parent model
-            validate = (model) => {
-                var type = model.get('_modelType');
-                if (type !== 'folder') {
-                    return 'Invalid parent type, please choose a folder.';
-                }
-            };
-            preview = false;
-        }
-
-        var browserModal = new BrowserWidget({
+        var modal = new ItemSelectorWidget({
             el: $('#g-dialog-container'),
             parentView: this,
-            showItems: showItems,
-            selectItem: showItems,
-            root: lastParent || getCurrentUser(),
-            titleText: title,
-            helpText: help,
-            input: input,
-            showPreview: preview,
-            validate: validate
+            model: this.model
         });
-        browserModal.once('g:saved', (model, inputValue) => {
-            lastParent = modal.root;
+        modal.once('g:saved', () => {
             modal.$el.modal('hide');
-            this.model.set({
-                value: model,
-                fileName: inputValue || model.name()
-            });
         }).render();
     }
 });
