@@ -27,7 +27,8 @@ var BrowserWidget = View.extend({
      * @param {string} [submitText="Save"] Text to display on the submit button
      * @param {boolean} [showItems=false] Show items in the hierarchy widget
      * @param {boolean} [showPreview=true] Show a preview of the current object id
-     * @param {function} [validate] A validation function returning a string that is displayed on error
+     * @param {function} [validate] A validation function returning either a string that is
+        displayed on error, or a promise that returns a string that is displayed on error.
      * @param {object} [rootSelectorSettings] Settings passed to the root selector widget
      * @param {boolean} [showMetadata=false] Show the metadata editor inside the hierarchy widget
      * @param {Model} [root] The default root model to pass to the hierarchy widget
@@ -149,26 +150,53 @@ var BrowserWidget = View.extend({
 
     _submitButton: function () {
         var model = this.selectedModel();
-        var message = this.validate(model);
+        var message;
         var inputMessage;
 
-        if (this.input && this.input.validate) {
-            inputMessage = this.input.validate(this.$('#g-input-element').val());
-        }
+        const isValid = $.Deferred().resolve()
+            .then(() => {
+                message = this.validate(model);
+                if (message === undefined) {
+                    return undefined;
+                } else if (typeof message.then === 'function') {
+                    return message;
+                } else {
+                    throw message;
+                }
+            })
+            .fail((message) => {
+                this.$('.g-selected-model').addClass('has-error');
+                this.$('.g-validation-failed-message').removeClass('hidden').text(message);
+            });
 
-        if (inputMessage) {
-            this.$('.g-input-element').addClass('has-error');
-            this.$('.g-validation-failed-message').removeClass('hidden').html(
-                _.escape(inputMessage) + '<br>' + _.escape(message)
-            );
-        } else if (message) {
-            this.$('.g-selected-model').addClass('has-error');
-            this.$('.g-validation-failed-message').removeClass('hidden').text(message);
-        } else {
-            this.root = this._hierarchyView.parentModel;
-            this.$el.modal('hide');
-            this.trigger('g:saved', model, this.$('#g-input-element').val());
-        }
+        const isInputValid = $.Deferred().resolve()
+            .then(() => {
+                if (this.input && this.input.validate) {
+                    inputMessage = this.input.validate(this.$('#g-input-element').val());
+                    if (inputMessage === undefined) {
+                        return undefined;
+                    } else if (typeof message.then === 'function') {
+                        return inputMessage;
+                    }else {
+                        throw inputMessage;
+                    }
+                } else {
+                    return undefined;
+                }
+            })
+            .fail((inputMessage) => {
+                this.$('.g-input-element').addClass('has-error');
+                this.$('.g-validation-failed-message').removeClass('hidden').html(
+                    _.escape(inputMessage) + '<br>'
+                );
+            });
+
+        $.when(isValid, isInputValid)
+            .done(() => {
+                this.root = this._hierarchyView.parentModel;
+                this.$el.modal('hide');
+                this.trigger('g:saved', model, this.$('#g-input-element').val());
+            });
     }
 });
 
