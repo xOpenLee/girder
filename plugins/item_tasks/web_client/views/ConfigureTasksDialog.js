@@ -61,14 +61,19 @@ var ConfigureTasksDialog = View.extend({
             currentModulePath = meta.itemTaskImport;
         }
 
-        this.$el.html(template({
-            model: this.model,
-            isFolder: this.isFolder,
-            currentImage: currentImage,
-            currentTaskName: currentTaskName,
-            currentSlicerCliArgs,
-            currentModulePath
-        })).girderModal(this);
+        restRequest({
+            path: 'item_task/extensions'
+        }).done((extensions) => {
+            this.$el.html(template({
+                model: this.model,
+                isFolder: this.isFolder,
+                currentImage: currentImage,
+                currentTaskName: currentTaskName,
+                currentSlicerCliArgs,
+                currentModulePath,
+                extensions
+            })).girderModal(this);
+        });
 
         // Clear validation error message when switching tabs
         this.$('a[data-toggle="tab"]')
@@ -146,20 +151,16 @@ var ConfigureTasksDialog = View.extend({
     },
 
     _submitCelery: function () {
-        const modulePath = this.$('.g-celery-import-path').val().trim();
+        const modulePath = (this.$('.g-celery-import-path').val() || '').trim();
+        const extension = (this.$('.g-worker-extension :selected').val() || '').trim();
         const setNameElem = this.$('.g-configure-celery-use-name');
         const setDescriptionElem = this.$('.g-configure-celery-use-description');
         const data = {};
 
-        if (!modulePath) {
-            this.$('.g-validation-failed-message').text('Please enter a valid import path');
-            return;
-        }
-
         if (this.resourceName === 'item') {
             data.taskName = modulePath;
         } else {
-            data.extension = modulePath;
+            data.extension = extension;
         }
 
         if (setNameElem.length) {
