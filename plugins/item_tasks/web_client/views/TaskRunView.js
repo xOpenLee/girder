@@ -140,6 +140,13 @@ const TaskRunView = View.extend({
         const translate = (model) => {
             let val = model.value();
             switch (model.get('type')) {
+                case 'file': // This is an input
+                    return {
+                        mode: 'girder',
+                        resource_type: 'file',
+                        id: val.id,
+                        fileName: model.get('fileName') || null
+                    };
                 case 'image': // This is an input
                     return {
                         mode: 'girder',
@@ -147,7 +154,7 @@ const TaskRunView = View.extend({
                         id: val.id,
                         fileName: model.get('fileName') || null
                     };
-                case 'file': // This is an input
+                case 'item': // This is an input
                     return {
                         mode: 'girder',
                         resource_type: 'item',
