@@ -90,19 +90,13 @@ var ConfigView = View.extend({
             groupsById: groupsById,
             levelNames: levelNames
         }));
+        this.enableTooltips();
 
         new PluginConfigBreadcrumbWidget({
             pluginName: 'Auto Join',
             el: this.$('.g-config-breadcrumb-container'),
             parentView: this
         }).render();
-
-        this.$('[title]').tooltip({
-            container: this.$el,
-            placement: 'left',
-            animation: false,
-            delay: {show: 100}
-        });
 
         return this;
     },

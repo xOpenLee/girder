@@ -55,10 +55,7 @@ var FlowView = View.extend({
             accessLevel: this.accessLevel,
             AccessType: AccessType
         }));
-
-        this.$('.g-thumbnail-actions-container a').tooltip({
-            delay: 100
-        });
+        this.enableTooltips();
 
         return this;
     }

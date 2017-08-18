@@ -75,6 +75,7 @@ var CollectionsView = View.extend({
             DATE_MINUTE: DATE_MINUTE,
             formatSize: formatSize
         }));
+        this.enableTooltips();
 
         this.paginateWidget.setElement(this.$('.g-collection-pagination')).render();
         this.searchWidget.setElement(this.$('.g-collections-search-container')).render();

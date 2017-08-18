@@ -64,6 +64,7 @@ var TaskProgressWidget = View.extend({
             percentText: percentText,
             timeLeftText: timeLeftText
         }));
+        this.enableTooltips();
         return this;
     },
 

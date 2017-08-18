@@ -29,7 +29,5 @@ wrap(AssetstoresView, 'render', function (render) {
         );
     }, this);
 
-    this.$('.g-hdfs-import-button').tooltip({
-        delay: 200
-    });
+    this.enableTooltips();
 });

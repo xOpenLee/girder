@@ -229,6 +229,7 @@ var DicomView = View.extend({
 
     render: function () {
         this.$el.html(ViewTemplate());
+        this.enableTooltips();
         return this;
     },
 

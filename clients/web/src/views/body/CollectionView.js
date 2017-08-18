@@ -19,7 +19,6 @@ import CollectionPageTemplate from 'girder/templates/body/collectionPage.pug';
 import 'girder/stylesheets/body/collectionPage.styl';
 
 import 'bootstrap/js/dropdown';
-import 'bootstrap/js/tooltip';
 
 /**
  * This view shows a single collection's page.
@@ -108,6 +107,7 @@ var CollectionView = View.extend({
             AccessType: AccessType,
             renderMarkdown: renderMarkdown
         }));
+        this.enableTooltips();
 
         if (!this.hierarchyWidget) {
             // The HierarchyWidget will self-render when instantiated
@@ -136,13 +136,6 @@ var CollectionView = View.extend({
         this.folderEdit = false;
         this.folderCreate = false;
         this.itemCreate = false;
-
-        this.$('.g-collection-actions-button').tooltip({
-            container: 'body',
-            placement: 'left',
-            animation: false,
-            delay: {show: 100}
-        });
 
         if (this.edit) {
             this.editCollection();

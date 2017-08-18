@@ -39,6 +39,7 @@ var SortCollectionWidget = View.extend({
             collection: this.collection,
             fields: this.fields
         }));
+        this.enableTooltips();
         if (this.collection.sortDir === SORT_ASC) {
             this.$('.g-down').addClass('hide');
         } else {

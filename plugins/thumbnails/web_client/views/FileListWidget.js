@@ -16,11 +16,7 @@ wrap(FileListWidget, 'render', function (render) {
 
     if (this.parentItem.getAccessLevel() >= AccessType.WRITE) {
         this.$('.g-file-actions-container').prepend(FileListWidgetCreateButtonTemplate());
-        this.$('.g-create-thumbnail').tooltip({
-            container: 'body',
-            placement: 'auto',
-            delay: 100
-        });
+        this.enableTooltips();
     }
 
     return this;

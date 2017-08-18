@@ -86,6 +86,7 @@ var UsersView = View.extend({
             formatSize: formatSize,
             DATE_DAY: DATE_DAY
         }));
+        this.enableTooltips();
 
         this.paginateWidget.setElement(this.$('.g-user-pagination')).render();
         this.sortCollectionWidget.setElement(this.$('.g-user-sort')).render();

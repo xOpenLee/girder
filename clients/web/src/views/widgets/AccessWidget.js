@@ -16,8 +16,6 @@ import { restRequest } from 'girder/rest';
 
 import 'girder/stylesheets/widgets/accessWidget.styl';
 
-import 'bootstrap/js/tooltip';
-
 import 'girder/utilities/jquery/girderModal';
 
 /**
@@ -164,7 +162,6 @@ var AccessWidget = View.extend({
                 })
             }));
         }, this);
-
         this._makeTooltips();
 
         this.searchWidget.setElement(this.$('.g-search-field-container')).render();
@@ -175,15 +172,7 @@ var AccessWidget = View.extend({
     },
 
     _makeTooltips: function () {
-        this.$('.g-access-action-container a,.g-tooltip').tooltip({
-            placement: 'bottom',
-            animation: false,
-            delay: { show: 100 }
-        });
-
-        this.$('.g-flag-label span').tooltip({
-            placement: 'bottom'
-        });
+        this.enableTooltips(true);
 
         // Re-binding popovers actually breaks them, so we make sure to
         // only bind ones that aren't already bound.
@@ -268,7 +257,6 @@ var AccessWidget = View.extend({
                     noAccessFlag: this.noAccessFlag,
                     flagList: this.flagList
                 }));
-
                 this._makeTooltips();
             }, this).fetch();
         }

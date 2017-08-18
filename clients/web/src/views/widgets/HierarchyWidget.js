@@ -28,7 +28,6 @@ import HierarchyWidgetTemplate from 'girder/templates/widgets/hierarchyWidget.pu
 import 'girder/stylesheets/widgets/hierarchyWidget.styl';
 
 import 'bootstrap/js/dropdown';
-import 'bootstrap/js/tooltip';
 
 var pickedResources = null;
 
@@ -63,6 +62,7 @@ var HierarchyBreadcrumbView = View.extend({
             current: active,
             descriptionText: descriptionText
         }));
+        this.enableTooltips();
 
         return this;
     }
@@ -274,6 +274,7 @@ var HierarchyWidget = View.extend({
             capitalize: capitalize,
             itemFilter: this._itemFilter
         }));
+        this.enableTooltips();
 
         if (this.$('.g-folder-actions-menu>li>a').length === 0) {
             // Disable the actions button if actions list is empty
@@ -294,17 +295,6 @@ var HierarchyWidget = View.extend({
                 this.metadataWidget.setElement(this.$('.g-folder-metadata')).render();
             }
         }
-
-        this.$('[title]').tooltip({
-            container: this.$el,
-            animation: false,
-            delay: {
-                show: 100
-            },
-            placement: function () {
-                return this.$element.attr('placement') || 'top';
-            }
-        });
 
         if (this.upload) {
             this.uploadDialog();

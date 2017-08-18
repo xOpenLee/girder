@@ -64,6 +64,7 @@ var CheckBoxMenu = View.extend({
             items: this.items,
             checkAllChecked: this._allItemsChecked()
         }));
+        this.enableTooltips();
     }
 });
 

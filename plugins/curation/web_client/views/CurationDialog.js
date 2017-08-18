@@ -75,6 +75,7 @@ var CurationDialog = View.extend({
             curation: this.curation,
             moment: moment
         }));
+        this.enableTooltips();
 
         if (!refresh) {
             q.girderModal(this);

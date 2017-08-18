@@ -79,12 +79,7 @@ var ItemListWidget = View.extend({
             viewLinks: this._viewLinks,
             showSizes: this._showSizes
         }));
-
-        this.$('.g-item-list-entry a[title]').tooltip({
-            container: 'body',
-            placement: 'auto',
-            delay: 100
-        });
+        this.enableTooltips();
 
         return this;
     },

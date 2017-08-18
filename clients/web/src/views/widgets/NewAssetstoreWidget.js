@@ -52,6 +52,7 @@ var NewAssetstoreWidget = View.extend({
 
     render: function () {
         this.$el.html(NewAssetstoreTemplate());
+        this.enableTooltips();
         return this;
     },
 

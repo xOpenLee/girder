@@ -29,6 +29,7 @@ var ConfigView = View.extend({
                 server: {collapsedClass: 'in'},
                 index: this.$('.g-ldap-server-panel').length
             }));
+            this.enableTooltips();
         },
         'input .g-uri-input': function (event) {
             const field = $(event.currentTarget);
@@ -87,6 +88,7 @@ var ConfigView = View.extend({
         this.$el.html(template({
             servers: this.servers
         }));
+        this.enableTooltips();
 
         this.breadcrumb.setElement(this.$('.g-config-breadcrumb-container')).render();
         sortable.create(this.$('.g-ldap-server-accordion')[0], {

@@ -19,7 +19,6 @@ import JSONEditor from 'jsoneditor/dist/jsoneditor.js'; // can't 'jsoneditor'
 import 'jsoneditor/dist/jsoneditor.css';
 
 import 'bootstrap/js/dropdown';
-import 'bootstrap/js/tooltip';
 
 var MetadatumWidget = View.extend({
     className: 'g-widget-metadata-row',
@@ -287,14 +286,8 @@ var MetadatumEditWidget = View.extend({
             newDatum: this.newDatum,
             AccessType: AccessType
         }));
+        this.enableTooltips();
         this.$el.find('.g-widget-metadata-key-input').focus();
-
-        this.$('[title]').tooltip({
-            container: this.$el,
-            placement: 'bottom',
-            animation: false,
-            delay: {show: 100}
-        });
 
         return this;
     }
@@ -332,6 +325,7 @@ var JsonMetadatumEditWidget = MetadatumEditWidget.extend({
                 });
             }
         });
+        this.enableTooltips();
 
         if (this.value !== undefined) {
             this.editor.setText(JSON.stringify(this.value));
@@ -487,6 +481,7 @@ var MetadataWidget = View.extend({
             accessLevel: this.accessLevel,
             AccessType: AccessType
         }));
+        this.enableTooltips();
 
         // Append each metadatum
         _.each(metaKeys, function (metaKey) {
@@ -502,13 +497,6 @@ var MetadataWidget = View.extend({
                 onMetadataAdded: this.onMetadataAdded
             }).render().$el);
         }, this);
-
-        this.$('.g-widget-metadata-add-button').tooltip({
-            container: this.$el,
-            placement: 'left',
-            animation: false,
-            delay: {show: 100}
-        });
 
         return this;
     }

@@ -63,6 +63,7 @@ var ItemPreviewWidget = View.extend({
             isImageItem: this._isImageItem,
             isJSONItem: this._isJSONItem
         }));
+        this.enableTooltips();
 
         // Render any JSON files.
         supportedItems.filter(this._isJSONItem).forEach((item) => {
@@ -84,13 +85,6 @@ var ItemPreviewWidget = View.extend({
             }).fail((err) => {
                 console.error('Could not preview item', err);
             });
-        });
-
-        this.$('.g-widget-item-previews-wrap').tooltip({
-            container: this.$el,
-            placement: 'left',
-            animation: false,
-            delay: {show: 100}
         });
 
         return this;

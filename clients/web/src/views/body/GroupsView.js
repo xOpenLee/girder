@@ -60,6 +60,7 @@ var GroupsView = View.extend({
             formatDate: formatDate,
             DATE_DAY: DATE_DAY
         }));
+        this.enableTooltips();
 
         this.paginateWidget.setElement(this.$('.g-group-pagination')).render();
         this.searchWidget.setElement(this.$('.g-groups-search-container')).render();
