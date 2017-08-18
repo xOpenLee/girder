@@ -68,6 +68,10 @@ module.exports = {
         // '__webpack_public_path__', since it's not always known at build-time.
     },
     plugins: [
+        // Exclude all of Moment.js's extra locale files, to reduce build size (from where they're
+        // imported in either the ES6-source or UMD-built imports).
+        new webpack.IgnorePlugin(/^\.\/locale$/, /moment(?:\/src\/lib\/locale)?$/),
+
         // Automatically detect jQuery and $ as free var in modules
         // and inject the jquery library. This is required by many jquery plugins
         new webpack.ProvidePlugin({
@@ -75,6 +79,7 @@ module.exports = {
             $: 'jquery',
             'window.jQuery': 'jquery'
         }),
+
         // Disable writing the output file if a build error occurs
         new webpack.NoEmitOnErrorsPlugin()
     ],
@@ -219,6 +224,12 @@ module.exports = {
             'girder': paths.web_src
         },
         extensions: ['.js'],
+        // Add 'jsnext:main' as an additional field in 'package.json' for looking up source files.
+        // See https://github.com/jsforum/jsforum/issues/5 for more information on this field.
+        //
+        // In particular, the Moment.js library uses 'jsnext:main' to point to its ES6 modules,
+        // which we should prefer over its UMD-built dist file (referenced by 'main').
+        mainFields: ['jsnext:main', 'browser', 'module', 'main'],
         modules: [
             paths.node_modules
         ],
