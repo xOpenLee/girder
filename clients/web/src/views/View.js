@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
+import 'bootstrap/js/tooltip';
 
 import events from 'girder/events';
 import eventStream from 'girder/utilities/EventStream';
@@ -72,6 +73,35 @@ var View = Backbone.View.extend({
      */
     unregisterChildView: function (child) {
         this._childViews = _.without(this._childViews, child);
+    },
+
+    /**
+     * Apply styled tooltip behavior to elements in this view.
+     *
+     * Tooltips should be set on HTML elements via the "title" attribute. To force the tooltip to
+     * render in a certain orientation, relative to the owning element, the "data-placement"
+     * attribute may optionally be set as well. Finally, this method should be called immediately
+     * after a view renders its own HTML (via "this.$el.html").
+     *
+     * @param {Boolean} [dynamic=false] Set to true if tooltips may be inside dynamic elements
+     *        (e.g. inside a popover). Default is false, for possibly increased performance. Do not
+     *        call this method with both argument values on the same DOM.
+     */
+    enableTooltips: function (dynamic = false) {
+        // This purposely does not take any arguments that affect the style of the template. These
+        // should be set on the HTML via data attributes.
+        $.fn.tooltip.Constructor.DEFAULTS.placement = 'auto';
+        if (dynamic) {
+            this.$el.tooltip({
+                selector: '[title]',
+                container: this.$el
+            });
+        } else {
+            this.$('[title]').tooltip({
+                // Setting "container" seems to prevent tooltip jitter near the edges of the screen
+                container: this.$el
+            });
+        }
     }
 });
 
