@@ -175,7 +175,7 @@ var BrowserWidget = View.extend({
                     inputMessage = this.input.validate(this.$('#g-input-element').val());
                     if (inputMessage === undefined) {
                         return undefined;
-                    } else if (typeof message.then === 'function') {
+                    } else if (typeof inputMessage.then === 'function') {
                         return inputMessage;
                     }else {
                         throw inputMessage;
