@@ -55,6 +55,7 @@ class InstallWithOptions(install):
         self.mergeDir('grunt_tasks', dest)
         self.mergeDir('plugins', dest)
 
+
 with open('README.rst') as f:
     readme = f.read()
 
@@ -78,6 +79,7 @@ install_reqs = [
 extras_reqs = {
     'celery_jobs': ['celery'],
     'dicom_viewer': ['pydicom'],
+    'fuse': ['fusepy>=2.0.4'],
     'geospatial': ['geojson'],
     'item_tasks': ['ctk-cli'],
     'ldap': ['pyldap'],
