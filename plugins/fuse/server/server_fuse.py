@@ -2,6 +2,7 @@ import atexit
 import errno
 import fuse
 import os
+import shutil
 import six
 import stat
 import subprocess
@@ -207,6 +208,8 @@ class ServerFuse(fuse.Operations, ModelImporter):
         :returns: True if access is allowed.  An exception is raised if it is
             not.
         """
+        if path.rstrip('/') == '':
+            return super(ServerFuse, self).access(path, mode)
         # mode is either F_OK or a bitfield of R_OK, W_OK, X_OK
         # we need to validate if the resource can be accessed
         resource = self._getPath(path)
@@ -364,7 +367,11 @@ def unmountServerFuse(name):
         if entry:
             events.trigger('server_fuse.unmount', {'name': name})
             path = entry['path']
-            subprocess.call(['fusermount', '-u', os.path.realpath(path)])
+            # Girder uses shutilwhich on Python < 3
+            if shutil.which('fusermount'):
+                subprocess.call(['fusermount', '-u', os.path.realpath(path)])
+            else:
+                subprocess.call(['umount', os.path.realpath(path)])
             if entry['thread']:
                 entry['thread'].join(10)
             # clean up previous processes so there aren't any zombies
