@@ -5,6 +5,7 @@ import os
 import shutil
 import six
 import stat
+import sys
 import subprocess
 import threading
 import time
@@ -84,10 +85,13 @@ class ServerFuse(fuse.Operations, ModelImporter):
             # Log all exceptions and then reraise them
             if self.log:
                 if getattr(e, 'errno', None) == errno.ENOENT:
-                    self.log.debug('-- %s %s', op, str(e))
+                    try:
+                        self.log.debug('-- %s %r', op, e)
+                    except Exception:
+                        self.log.exception('-- fallback %s', op)
                 else:
                     self.log.exception('-- %s', op)
-            raise
+            raise e
         finally:
             if self.log:
                 if op != 'read':
@@ -208,7 +212,7 @@ class ServerFuse(fuse.Operations, ModelImporter):
         :returns: True if access is allowed.  An exception is raised if it is
             not.
         """
-        if path.rstrip('/') == '':
+        if path.rstrip('/') in ('', '/user', '/collection'):
             return super(ServerFuse, self).access(path, mode)
         # mode is either F_OK or a bitfield of R_OK, W_OK, X_OK
         # we need to validate if the resource can be accessed
@@ -375,7 +379,12 @@ def unmountServerFuse(name):
             if entry['thread']:
                 entry['thread'].join(10)
             # clean up previous processes so there aren't any zombies
-            os.waitpid(-1, os.WNOHANG)
+            try:
+                os.waitpid(-1, os.WNOHANG)
+            except OSError:
+                # Don't throw an error; sometimes we get an
+                # errno 10: no child processes
+                pass
 
 
 def mountServerFuse(name, path, level=AccessType.ADMIN, user=None, force=False):
@@ -418,21 +427,24 @@ def mountServerFuse(name, path, level=AccessType.ADMIN, user=None, force=False):
             # when the program is stopped.
             opClass = ServerFuse(level=level, user=user, force=force,
                                  stat=os.stat(path))
+            options = {
+                # Running in a thread in the foreground makes it easier to
+                # clean up the process when we need to shut it down.
+                'foreground': True,
+                # Automatically unmount when python we try to mount again
+                'auto_unmount': True,
+                # Cache files if their size and timestamp haven't changed.
+                # This lets to OS buffer files efficiently.
+                'auto_cache': True,
+                # We aren't specifying our own inos
+                'use_ino': False,
+                # read-only file system
+                'ro': True,
+            }
+            if sys.platform == 'darwin':
+                del options['auto_unmount']
             fuseThread = threading.Thread(
-                target=fuse.FUSE, args=(opClass, path), kwargs={
-                    # Running in a thread in the foreground makes it easier to
-                    # clean up the process when we need to shut it down.
-                    'foreground': True,
-                    # Automatically unmount when python we try to mount again
-                    'auto_unmount': True,
-                    # Cache files if their size and timestamp haven't changed.
-                    # This lets to OS buffer files efficiently.
-                    'auto_cache': True,
-                    # We aren't specifying our own inos
-                    'use_ino': False,
-                    # read-only file system
-                    'ro': True,
-                })
+                target=fuse.FUSE, args=(opClass, path), kwargs=options)
             fuseThread.daemon = True
             fuseThread.start()
             entry['thread'] = fuseThread
