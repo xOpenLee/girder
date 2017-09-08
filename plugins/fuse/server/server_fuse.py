@@ -85,10 +85,7 @@ class ServerFuse(fuse.Operations, ModelImporter):
             # Log all exceptions and then reraise them
             if self.log:
                 if getattr(e, 'errno', None) == errno.ENOENT:
-                    try:
-                        self.log.debug('-- %s %r', op, e)
-                    except Exception:
-                        self.log.exception('-- fallback %s', op)
+                    self.log.debug('-- %s %r', op, e)
                 else:
                     self.log.exception('-- %s', op)
             raise e
@@ -202,14 +199,14 @@ class ServerFuse(fuse.Operations, ModelImporter):
     def access(self, path, mode):
         """
         Try to load the resource associated with a path.  If we have permission
-        to do so absed on the current mode, report that access is allowed.
+        to do so based on the current mode, report that access is allowed.
         Otherwise, an exception is raised.
 
         :param path: path within the fuse.
         :param mode: either F_OK to test if the resource exists, or a bitfield
             of R_OK, W_OK, and X_OK to test if read, write, and execute
             permissions are allowed.
-        :returns: True if access is allowed.  An exception is raised if it is
+        :returns: 0 if access is allowed.  An exception is raised if it is
             not.
         """
         if path.rstrip('/') in ('', '/user', '/collection'):
@@ -227,7 +224,7 @@ class ServerFuse(fuse.Operations, ModelImporter):
             if (mode & os.X_OK):
                 self.model(resource['model']).requireAccess(
                     resource['document'], self.user, level=AccessType.ADMIN)
-        return True
+        return 0
 
     def getattr(self, path, fh=None):
         """
