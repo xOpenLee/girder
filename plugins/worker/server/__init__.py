@@ -211,12 +211,30 @@ def validTransitions(event):
     if states is not None:
         event.preventDefault().addResponse(states)
 
+def attachParentJob(event):
+    """Attach parentJob before a model is saved."""
+    jobModel = ModelImporter.model('job', 'jobs')
+    job = event.info
+    try:
+        celeryParentTaskId = job['celeryParentTaskId']
+        parentJob = jobModel.findOne({'celeryTaskId': celeryParentTaskId})
+        event.info['parentId'] = parentJob['_id']
+    except KeyError:
+        logger.warn('Cannot get celery parent task id')
+
+
+def attachJobInfoSpec(event):
+    """Attach jobInfoSpec after a model is saved."""
+    jobModel = ModelImporter.model('job', 'jobs')
+    job = event.info
+    jobModel.updateJob(job, otherFields={'jobInfoSpec': jobInfoSpec(job)})
 
 def load(info):
     events.bind('jobs.schedule', 'worker', schedule)
     events.bind('jobs.status.validate', 'worker', validateJobStatus)
     events.bind('jobs.status.validTransitions', 'worker', validTransitions)
     events.bind('jobs.cancel', 'worker', cancel)
-
+    events.bind('model.job.save.after', 'worker', attachJobInfoSpec)
+    events.bind('model.job.save', 'worker', attachParentJob)
     ModelImporter.model('job', 'jobs').exposeFields(
         AccessType.SITE_ADMIN, {'celeryTaskId', 'celeryQueue'})
