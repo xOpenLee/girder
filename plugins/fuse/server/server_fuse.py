@@ -62,7 +62,7 @@ class ServerFuse(fuse.Operations, ModelImporter):
         # we always set st_mode, st_size, st_ino, st_nlink, so we don't need
         # to track those.
         self._defaultStat = dict((key, getattr(stat, key)) for key in (
-            'st_atime', 'st_ctime', 'st_gid', 'st_mtime', 'st_uid'))
+            'st_atime', 'st_ctime', 'st_gid', 'st_mtime', 'st_uid', 'st_blksize'))
         self.nextFH = 1
         self.openFiles = {}
         self.openFilesLock = threading.Lock()
@@ -103,6 +103,11 @@ class ServerFuse(fuse.Operations, ModelImporter):
         :param path: path within the fuse.
         :returns: a Girder resource dictionary.
         """
+        # If asked about a file in top level directory or the top directory,
+        # return that it doesn't exist.  Other methods should handle '',
+        # '/user', and 'collection' before calling this method.
+        if '/' not in path.rstrip('/')[1:]:
+            raise fuse.FuseOSError(errno.ENOENT)
         try:
             # We can't filter the resource, since that removes files'
             # assetstore information and users' size information.
@@ -140,10 +145,10 @@ class ServerFuse(fuse.Operations, ModelImporter):
         attr['st_ctime'] = attr['st_mtime']
 
         if model == 'file':
-            attr['st_mode'] = 0o777 | stat.S_IFREG
+            attr['st_mode'] = 0o400 | stat.S_IFREG
             attr['st_size'] = doc.get('size', len(doc.get('linkUrl', '')))
         else:
-            attr['st_mode'] = 0o777 | stat.S_IFDIR
+            attr['st_mode'] = 0o500 | stat.S_IFDIR
             # Directories have zero size.  We could, instead, list the size
             # of all of their children via doc.get('size', 0), but that isn't
             # how most directories are reported.
@@ -237,11 +242,14 @@ class ServerFuse(fuse.Operations, ModelImporter):
         """
         if path.rstrip('/') in ('', '/user', '/collection'):
             attr = self._defaultStat.copy()
-            attr['st_mode'] = 0o777 | stat.S_IFDIR
+            attr['st_mode'] = 0o500 | stat.S_IFDIR
             attr['st_size'] = 0
         else:
             resource = self._getPath(path)
             attr = self._stat(resource['document'], resource['model'])
+        if attr.get('st_blksize') and attr.get('st_size'):
+            attr['st_blocks'] = int(
+                (attr['st_size'] + attr['st_blksize'] - 1) / attr['st_blksize'])
         return attr
 
     def read(self, path, size, offset, fh):
